@@ -13,6 +13,20 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+export let dbInitPromise: Promise<void> | null = null;
+
+// Wait for database initialization on Vercel before processing any API requests
+app.use(async (req, res, next) => {
+  if (process.env.VERCEL && dbInitPromise) {
+    try {
+      await dbInitPromise;
+    } catch (err) {
+      console.error('Database initialization failed:', err);
+    }
+  }
+  next();
+});
+
 // Serve static assets in production from the frontend dist folder
 const clientDistPath = path.join(__dirname, '../../client/dist');
 app.use(express.static(clientDistPath));
@@ -541,8 +555,8 @@ if (!process.env.VERCEL) {
       console.error('Failed to initialize database. Server exiting...', err);
     });
 } else {
-  // On Vercel, initialize database asynchronously
-  initDb().catch((err) => {
+  // On Vercel, expose a middleware to ensure db is initialized before handling requests
+  dbInitPromise = initDb().catch((err) => {
     console.error('Failed to initialize database on Vercel:', err);
   });
 }
