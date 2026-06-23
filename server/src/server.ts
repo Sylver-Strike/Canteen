@@ -527,13 +527,22 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
-// Initialize database then start server
-initDb()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server listening on port ${PORT}`);
+export default app;
+
+if (!process.env.VERCEL) {
+  // Initialize database then start server
+  initDb()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Server listening on port ${PORT}`);
+      });
+    })
+    .catch((err) => {
+      console.error('Failed to initialize database. Server exiting...', err);
     });
-  })
-  .catch((err) => {
-    console.error('Failed to initialize database. Server exiting...', err);
+} else {
+  // On Vercel, initialize database asynchronously
+  initDb().catch((err) => {
+    console.error('Failed to initialize database on Vercel:', err);
   });
+}
